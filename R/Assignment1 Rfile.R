@@ -64,10 +64,18 @@ df_bold_sub %>%
 df_bin_summary <- df_bold_sub %>%
   group_by(bin_uri) %>%
   summarise(avg_lat = median(Lat, na.rm = TRUE)) %>%
-  mutate(latgrouped = case_when(
-      avg_lat >= -23.5 & avg_lat <= 23.5 ~ "Tropical",
-      (avg_lat > 23.5 & avg_lat <= 66.5) | avg_lat < (-23.5 & avg_lat >= -66.5) ~ "Temperate",
-      avg_lat > 66.5 | avg_lat < -66.5 ~ "Polar"))
+  rowwise() %>% 
+  mutate(
+    latgrouped = df_lat_regions$region[
+      which(
+        (ifelse(df_lat_regions$include_min, avg_lat >= df_lat_regions$lat_min, avg_lat > df_lat_regions$lat_min))
+        &
+          (ifelse(df_lat_regions$include_max, avg_lat <= df_lat_regions$lat_max, avg_lat < df_lat_regions$lat_max
+                  )
+          )
+      )
+    ][1]) %>% 
+  ungroup()
 
 sum(is.na(df_bin_summary$avg_lat)) # 173 BINs have no latitiude values
 
