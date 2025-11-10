@@ -34,13 +34,29 @@ df_bold_sub <- df_bold[, c("processid", "bin_uri", "species", "country/ocean",
                            "Lat", "Long", "marker_code", "nuc")]
 df_bold_sub
 
+
+#Create table with lat ranges and their corresponding regions, indicate whether or not to include the upper and lower bounds.
+df_lat_regions <- data.frame(
+  region = c("Polar", "Temperate", "Tropical", "Temperate", "Polar"),
+  lat_max = c(-66.5, -23.5, 23.5, 66.5, 90),
+  lat_min = c(-90, -66.5, -23.5, 23.5, 66.5),
+  include_max = c(FALSE, FALSE, TRUE, TRUE, TRUE),
+  include_min = c(TRUE, TRUE, TRUE, FALSE, TRUE)
+)
+
 #Create a new variable grouping latitude into Tropical, Temperate and Polar regions
-df_bold_sub <- df_bold_sub %>%
+df_bold_sub <- df_bold_sub %>% 
+  rowwise() %>% 
   mutate(
-    latgrouped = case_when(
-      Lat <= 23.5 & Lat >= -23.5 ~ "Tropical",
-      (Lat> 23.5 & Lat <= 66.5) | (Lat < -23.5 & Lat >= -66.5) ~ "Temperate",
-      Lat > 66.5 | Lat < -66.5~ "Polar"))
+    latgrouped = df_lat_regions$region[
+      which(
+        (ifelse(df_lat_regions$include_min, Lat >= df_lat_regions$lat_min, Lat > df_lat_regions$lat_min)) &
+          (ifelse(df_lat_regions$include_max, Lat <= df_lat_regions$lat_max, Lat < df_lat_regions$lat_max))
+      )
+    ][1]) %>% 
+  ungroup()
+#Check the count for each region
+#Tropical = 20004, Temperate = 8846, NA = 8002, Polar = 23
 df_bold_sub %>% 
   count(latgrouped, sort = TRUE)
 
