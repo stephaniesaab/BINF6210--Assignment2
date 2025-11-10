@@ -84,12 +84,11 @@ sum(is.na(df_bin_summary$avg_lat)) # 173 BINs have no latitiude values
 
 length(unique(df_bold_sub$species))
 length(unique(df_bold_sub$bin_uri))
-length(unique(df_bold_sub$bin_uri))/length(unique(df_bold_sub$species))
-#More species than BINs 
+length(unique(df_bold_sub$bin_uri))/length(unique(df_bold_sub$species)) #More species than BINs 
 
 sum(!is.na(df_bold_sub$bin_uri))/length((df_bold_sub$bin_uri)) # 91.1% of samples have BINs
 
-#checking that latitude values are within the right range (-90 to +90). Data is oversampled between 10-20° (Sampling bias may be at play, this is key for regression analysis and we try to reduce its effects by grouping data into latitude bands ).
+#checking that latitude values are within the right range (-90 to +90). Found that data is oversampled between 10-20° (Sampling bias may be at play, this is key for regression analysis and we try to reduce its effects by grouping data into latitude bands ).
 hist(df_bold_sub$Lat)
 
 #3 Data exploration to study relationship between latitudinal regions and biodiversity---- 
