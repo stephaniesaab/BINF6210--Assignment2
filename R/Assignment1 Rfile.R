@@ -143,20 +143,29 @@ ggplot(df_bold_sub, aes(x = latgrouped)) +
   labs(title = "Samples per Region", x = "Latitude Group(Region)", y = "Count (log scale)")
 
 # Bar chart showing  Number of BINs per region
-ggplot(df_bin_summary) +
-  geom_bar(aes(x = latgrouped), fill = "brown") +
+ggplot(df_bin_summary, aes(x = latgrouped)) +
+  geom_bar(fill = "brown") +
+  scale_y_continuous(trans = "log10") +
+  geom_text(
+    stat = "count",
+    aes(label = after_stat(count)),
+    vjust = -0.5,
+    size = 4
+  ) +
   labs(title = "BINs per Region", x = "Latitude Group(Region)", y = "Numbers of BINs found")
 
-# Scatterplot showing Unique BINs latitude distribution
-ggplot(df_bin_summary) +
-  geom_point(mapping = aes(x = avg_lat, y = bin_uri, colour = latgrouped, shape = latgrouped), size = 2, na.rm = TRUE) +
-  labs(title = "Distribution of Drosophilia BINs by latitude ", x = " Average Latitude", y = "Unique BINs") +
-  scale_y_discrete(labels = NULL) +
-  scale_color_viridis_d(option = "inferno")
+# # Scatterplot showing Unique BINs latitude distribution
+# ggplot(df_bin_summary) +
+#   geom_point(mapping = aes(
+#     x = avg_lat, y = bin_uri, colour = latgrouped, shape = latgrouped), 
+#     size = 2, na.rm = TRUE) +
+#   labs(title = "Distribution of Drosophilia BINs by latitude ", x = " Average Latitude", y = "Unique BINs") +
+#   scale_y_discrete(labels = NULL) +
+#   scale_color_viridis_d(option = "inferno")
 
 # 4. Statistical test and visualization for BIN richness by latitude/geographic region----
 
-# grouped into latiude band groups of every 10 degrees away from the equator in either direction with unique BINs and avg latitude for regression analysis
+# grouped into latitude band groups of every 10 degrees away from the equator in either direction with unique BINs and avg latitude for regression analysis
 # Mean used for average since data points are grouped within a 10 degree range reducing effect of outliers
 df_diversity_bins <- df_bold_sub %>%
   mutate(lat_band = cut(Lat, breaks = seq(-90, 90, by = 10))) %>%
