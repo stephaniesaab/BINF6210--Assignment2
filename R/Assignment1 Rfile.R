@@ -2,6 +2,7 @@
 # Author: Iroayo Toki
 # Published: November 4, 2025 
 # Last updated: November 12, 2025
+# Editor: Stephanie Saab
 # Model Organism: Drosophilia
 
 
@@ -34,51 +35,60 @@ df_bold_sub <- df_bold[, c("processid", "bin_uri", "species", "country/ocean",
                            "Lat", "Long", "marker_code", "nuc")]
 df_bold_sub
 
+#Create function that assigns regions based on latitude. Function takes in the dataframe and the unquoted name of the latitude column 
+assign_latitude_region <- function(df, lat) {
+  
+  #Create table with lat ranges and their corresponding regions, indicate whether or not to include the upper and lower bounds.
+  df_lat_regions <- data.frame(
+    region = c("Polar", "Temperate", "Tropical", "Temperate", "Polar"),
+    lat_max = c(-66.5, -23.5, 23.5, 66.5, 90),
+    lat_min = c(-90, -66.5, -23.5, 23.5, 66.5),
+    include_max = c(FALSE, FALSE, TRUE, TRUE, TRUE),
+    include_min = c(TRUE, TRUE, TRUE, FALSE, TRUE)
+  )
+  
+  #Create a new column grouping latitude into Tropical, Temperate and Polar regions
+  df <- df %>% 
+    rowwise() %>%
+    mutate(
+      latgrouped = {
+        
+        #Get the current row's latitude
+        lat_val <- {{ lat }}
+        df_lat_regions$region[
+        which(
+          (ifelse(df_lat_regions$include_min, lat_val >= df_lat_regions$lat_min, lat_val > df_lat_regions$lat_min)) &
+            (ifelse(df_lat_regions$include_max, lat_val <= df_lat_regions$lat_max, lat_val < df_lat_regions$lat_max))
+        )
+      ][1]
+        }
+      ) %>% 
+    ungroup()
+  
+  return(df)
+}
 
-#Create table with lat ranges and their corresponding regions, indicate whether or not to include the upper and lower bounds.
-df_lat_regions <- data.frame(
-  region = c("Polar", "Temperate", "Tropical", "Temperate", "Polar"),
-  lat_max = c(-66.5, -23.5, 23.5, 66.5, 90),
-  lat_min = c(-90, -66.5, -23.5, 23.5, 66.5),
-  include_max = c(FALSE, FALSE, TRUE, TRUE, TRUE),
-  include_min = c(TRUE, TRUE, TRUE, FALSE, TRUE)
-)
+#Apply the function
+df_bold_sub <- assign_latitude_region(df_bold_sub, Lat)
 
-#Create a new variable grouping latitude into Tropical, Temperate and Polar regions
-df_bold_sub <- df_bold_sub %>% 
-  rowwise() %>% 
-  mutate(
-    latgrouped = df_lat_regions$region[
-      which(
-        (ifelse(df_lat_regions$include_min, Lat >= df_lat_regions$lat_min, Lat > df_lat_regions$lat_min)) &
-          (ifelse(df_lat_regions$include_max, Lat <= df_lat_regions$lat_max, Lat < df_lat_regions$lat_max))
-      )
-    ][1]) %>% 
-  ungroup()
 #Check the count for each region
 #Tropical = 20004, Temperate = 8846, NA = 8002, Polar = 23
 df_bold_sub %>% 
   count(latgrouped, sort = TRUE)
 
-#Dataset showing grouping by BINS and their average latitude (median used to protect against outliers). 
+#Dataset showing grouping by BINS and their average latitude (median used to protect against outliers). Assign latitudinal regions
 df_bin_summary <- df_bold_sub %>%
   group_by(bin_uri) %>%
-  summarise(avg_lat = median(Lat, na.rm = TRUE)) %>%
-  rowwise() %>% 
-  mutate(
-    latgrouped = df_lat_regions$region[
-      which(
-        (ifelse(df_lat_regions$include_min, avg_lat >= df_lat_regions$lat_min, avg_lat > df_lat_regions$lat_min))
-        &
-          (ifelse(df_lat_regions$include_max, avg_lat <= df_lat_regions$lat_max, avg_lat < df_lat_regions$lat_max
-                  )
-          )
-      )
-    ][1]) %>% 
-  ungroup()
+  summarise(avg_lat = median(Lat, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  assign_latitude_region(avg_lat)
 
 sum(is.na(df_bin_summary$avg_lat)) # 173 BINs have no latitiude values
 
+#Check the count for each region for bins
+#Tropical = 294, Temperate = 128, NA = 173, Polar = 1
+df_bin_summary %>% 
+  count(latgrouped, sort = TRUE)
 
 #2. Exploration to understand parameters----
 
@@ -90,6 +100,9 @@ sum(!is.na(df_bold_sub$bin_uri))/length((df_bold_sub$bin_uri)) # 91.1% of sample
 
 #checking that latitude values are within the right range (-90 to +90). Found that data is oversampled between 10-20° (Sampling bias may be at play, this is key for regression analysis and we try to reduce its effects by grouping data into latitude bands ).
 hist(df_bold_sub$Lat)
+
+#
+
 
 #3 Data exploration to study relationship between latitudinal regions and biodiversity---- 
 #Figures show increased biodiversity in tropical regions compared to temperate regions based on available data, this could be due to stabler climates and warmer temperatures and increased vegetation, we will further check for this using a statistical test
